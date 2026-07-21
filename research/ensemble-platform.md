@@ -63,6 +63,54 @@ brittle rules and is cheap (one Haiku/Sonnet call per user). Human-confirmable p
 **Alternatives rejected:** self-declared role (vision rejected — too shallow); hard rule-based
 classifier (misses multi-hats like clinician-who-codes). **Confidence:** high.
 
+### T5: In-chat AI = two runtimes (AI SDK chat + Claude Agent SDK research worker)
+**Decision:** Split the AI into **two runtimes over one Postgres thread store**:
+1. **Chat/streaming** — **Vercel AI SDK** (`ai` + `@ai-sdk/anthropic`) in a Next.js **Node**
+   route handler (`runtime = 'nodejs'`): `streamText` on the summoned turn, `useChat` on the
+   client, tools with Zod `inputSchema`. The AI streams its reply through the room's realtime
+   channel (F3) and the final turn is persisted in `onFinish`.
+2. **Deep research** — the **Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`) in a
+   **background worker** (never a route handler — serverless caps kill multi-minute runs). The
+   `launch_research` tool enqueues a job (**pg-boss** on the same Postgres) and returns a
+   `job_id` immediately; the worker runs `query()` with **parallel subagents** using built-in
+   `WebSearch`/`WebFetch`, bounded by **`maxBudgetUsd`/`maxTurns`**, writing progress to a
+   `research_jobs` table; the cited synthesis posts back as an assistant message. Work-guide and
+   paper drafting reuse this path.
+**Shared multi-user context:** the Messages API has only user/assistant roles, so map **every
+human to `role:"user"` with an in-band speaker label** (`"[Alice, cardiologist]: …"`) and the
+AI's own turns to `role:"assistant"`; load the whole thread from Postgres on summon. **Prompt
+caching** is the main cost lever (same prefix re-sent every summon): freeze system prompt +
+tool defs + older history as the cached prefix, keep the newest turn uncached, deterministic
+tool-JSON order, no timestamps/IDs in the prefix.
+**@-summon gating** happens in the route handler, not the model: non-summoning messages are
+only persisted + broadcast (no model call); the model fires only on @mention / explicit action.
+**Model routing:** **Haiku 4.5** (`claude-haiku-4-5`, $1/$5) for the @-gate/intent classify;
+**Sonnet 5** (`claude-sonnet-5`, $3/$15) for the main chat turn; **Opus 4.8** (`claude-opus-4-8`,
+$5/$25, 1M ctx) for research synthesis + paper drafting. One model per thread (caches are
+model-scoped); use a cheaper subagent for sub-tasks.
+**Why:** AI SDK ships the chat/tool/stream plumbing; the Agent SDK ships the fan-out→verify→
+synthesize research loop (subagents + web tools + budget caps) out of the box (F6). Claude-native
+end-to-end — no LangChain/Mastra abstraction to fight.
+**Alternatives rejected:** roll-your-own chat with the raw Anthropic SDK (rebuilds `useChat`/SSE/
+tool-loop — keep raw SDK only for the one-shot gate classifier); Mastra / LangChain.js (needless
+abstraction for a Claude-only app); LangGraph.js (strong durable graphs but you'd hand-build every
+fan-out/verify node the Agent SDK gives free — pick only if you need a provider-agnostic graph);
+Managed Agents (beta — escape hatch if you'd rather not run a worker); running research in a route
+handler (serverless duration cap). Durable job runner: **pg-boss** (lowest friction on existing
+Postgres); Inngest/Trigger.dev/Vercel Workflows if managed durability is wanted later.
+**Confidence:** high (architecture); medium on exact SDK major version — **pin at build time**
+(AI SDK was iterating fast: v5 Jul-2025 → v7 mid-2026 per findings).
+
+### T6: Specialist-finder = an AI tool hitting the internal matching API, human-approved
+**Decision:** "Find us a specialist" is a first-class **`find_specialist` tool** the chat AI calls;
+its `execute` hits the internal matching API (T3, group→specialist surface), returns ranked
+candidates rendered as a rich in-room UI block. Actually inviting a candidate is **human-approved**
+(`needsApproval`) — the AI proposes, a member confirms, mirroring team-accept (C10). Compute/data
+asks are sibling tools (`request_compute` / `request_data`) that post to the operator queue.
+**Why:** Reuses the one matching engine (C3) as a tool; keeps side-effectful/medical actions behind
+a human gate. **Alternatives rejected:** a separate bespoke recruiting flow (redundant with T3);
+auto-inviting without approval (unsafe, low buy-in). **Confidence:** high.
+
 ### T7: Backbone = Supabase (single vendor), EU Frankfurt region
 **Decision:** Use **Supabase** as the entire backbone — Postgres (relational domain model),
 **pgvector** (matching), **Realtime** (multi-user chat + presence), **Auth** via `@supabase/ssr`,
