@@ -214,7 +214,27 @@ as a **later graft onto the same Postgres schema**, not a day-one cost); Postgre
 **Confidence:** high.
 
 ## Stack & Libraries
-<!-- filled as findings land -->
+
+| Layer | Choice | Call | Version / cost | License / health | Notes |
+|---|---|---|---|---|---|
+| Frontend | **Next.js 14.2 / React 18.3 / Tailwind 3.4 / TS 5.6** (existing) | Adopt | in repo | MIT | Keep design system + primitives (F1) |
+| Backbone | **Supabase** — Postgres + Realtime + Auth + Storage | Adopt | Free→Pro $25/mo | Apache-2.0, self-hostable; SOC2+HIPAA path | Region **eu-central-1**, permanent (F2) |
+| Auth glue | **`@supabase/ssr`** + `middleware.ts` | Adopt | current | — | NOT deprecated `auth-helpers`; service-role server-only |
+| Vector store | **pgvector 0.8** (in the same Postgres) | Adopt | free | PostgreSQL lic | 1024-dim, HNSW, `halfvec`, iterative scan (F7) |
+| Embeddings | **Voyage-3.5** (primary) / OpenAI `text-embedding-3-large` (fallback) | Adopt | $0.06 / $0.13 per 1M | proprietary API | Not a medical embedder (F7) |
+| Text search | Postgres **FTS** (`tsvector`) + **RRF** fusion | Compose | free | — | Hybrid ~62%→84% precision (F7) |
+| Reranker | **Cohere Rerank 3.5** | Adopt | $2 / 1k searches | proprietary API | top-20–50 shortlist only |
+| Proximity | **earthdistance**/PostGIS + network-closeness graph | Compose | free | GPL/PG | bounded boost λ≈0.15, never a filter |
+| Team assembly | **OR-Tools CP-SAT** (Python worker) | Adopt | free | Apache-2.0 | covering ILP; exact at this scale (F7) |
+| Chat AI | **Vercel AI SDK** (`ai` + `@ai-sdk/anthropic`) | Adopt | free lib | MIT | `streamText`/`useChat`; **pin major at build** |
+| Research AI | **Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`) | Adopt | free lib | — | subagents + built-in WebSearch/WebFetch, budget caps |
+| Job queue | **pg-boss** (on existing Postgres) | Adopt | free | MIT | research + assemble jobs; Inngest/Trigger.dev if managed later |
+| Models | **Haiku 4.5** `claude-haiku-4-5` · **Sonnet 5** `claude-sonnet-5` · **Opus 4.8** `claude-opus-4-8` | Adopt | $1/$5 · $3/$15 · $5/$25 per MTok | Anthropic | gate · chat · research/paper; prompt-cache the prefix |
+| Scholarly data | **OpenAlex** (CC0) · **ORCID** · **Europe PMC** · **Crossref** | Adopt | free | CC0 / open | profile ingestion (T1); set `mailto`/UA, cache by author-ID |
+| CV / LinkedIn | LLM CV parse; LinkedIn via **OIDC** or user export only | Build/Adopt | — | — | never scrape (F4); Affinda fallback if LLM CV weak |
+
+**Language footprint:** TypeScript everywhere except **one Python service** (OR-Tools CP-SAT). The
+Agent SDK research worker is Node/TS. Two external API deps (embeddings, rerank).
 
 ## Architecture
 
