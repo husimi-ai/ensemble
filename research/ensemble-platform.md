@@ -87,7 +87,26 @@ research agents.)_
 <!-- preference-sensitive picks -->
 
 ## Key Findings
-<!-- F# logged as agents report -->
+
+### F1: The existing app is a reusable presentational shell over a single-user chat model
+**Finding:** Frontend-only. All state lives in `app/page.tsx` (`useState`), `send()` returns a
+hardcoded canned string — no fetch/stream/persistence anywhere. Verified absent (by grep): any
+`app/api/`, DB, auth, realtime, AI SDK, data-fetching, env usage, client storage. The message
+model in `lib/types.ts` is single-user ChatGPT semantics: `Role = "user" | "assistant"`;
+`ChatMessage { id, role, content }` — **no sender identity, name, timestamp, or room id.**
+**Evidence:** Agent codebase sweep of every source file. Reusable as-is: `Composer`, `Modal`,
+`IconButton`, `Toggle`, `SettingRow`/`SelectControl`, `icons`, `EmptyState`, `Suggestions`,
+and the `SettingsModal` tabbed shell (drop the 14 ChatGPT tabs). Needs rework for multi-user:
+`lib/types.ts` (root cause), `Message` (binary user/assistant alignment), `MessageActions`
+(ChatGPT-specific), `Thread` (typed to `ChatMessage`), `Sidebar`/`AccountMenu` (hardcoded
+data), `ModelSwitcher`, and `page.tsx` (canned `send`, all-local state, single static route).
+**Implications:** (1) Keep the design system + primitives — big head start, honors CLAUDE.md.
+(2) **First build step is the data model**: generalize `Message` to a multi-author room model
+(`senderId`, `senderKind: human|ai|system`, `roomId`, `kind`, `createdAt`, attachments) — the
+`Thread`/`Message`/`MessageActions` rework all follow from it. (3) The app must gain routing
+(rooms, feed, onboarding, operator console), providers (auth/realtime/data), and server routes;
+today it's one client route. (4) `ModelSwitcher` is repurposable as an AI-participant/model
+control in a room, or dropped.
 
 ## References
 <!-- R# -->
