@@ -34,7 +34,54 @@ _(in progress — investigating)_
 <!-- filled as findings land -->
 
 ## Architecture
-<!-- filled at wrap-up -->
+
+### Domain model (entities & flows) — backbone-agnostic first pass
+Derived directly from the vision; concrete DB/tech binding follows the backbone decision (T-backbone).
+
+**Core entities**
+- **User** — account/auth: id, email, name, profession, city, institution(s).
+- **Profile** (1:1 User) — the investigated picture: extracted research topics, publications,
+  skills, role signals, institution, city, *data/resources they may control*; one or more
+  **embeddings**; assigned **role** (problem-identifier / builder / researcher) + confidence;
+  `confirmed` flag. Every inferred fact carries **provenance** (which source) for GDPR review.
+- **ProfileSource** — each provided link/CV and what was fetched (OpenAlex/ORCID/CV-parse…),
+  for provenance + re-ingest.
+- **Problem** — a listing: title, description, medical subfield/tags, required roles/skills,
+  `origin` (founder-seeded | user-submitted), `submitted_by`, `status` (draft→review→published).
+- **Application** — User → Problem: role (as classified), `status` (pending|assembled|
+  unmatched), `feedback` (fuels the unmatched-retry loop, C16).
+- **Group** (a.k.a. Project / Ensemble) — a formed team on a Problem: `status`
+  (proposed→confirming→active→submitted→handed-over). (Many groups may tackle one problem.)
+- **Membership** — User ↔ Group with `role` (problem/builder/researcher/**provider**/**founder**)
+  and `accepted` (C10 unanimous accept). Founder is a member of every group (C17); accepted
+  data-providers/specialists join as members (C15).
+- **Message** — in a Group room: sender (user *or* AI), content, attachments, `kind`
+  (human|ai|system|research-result|work-guide). Realtime-delivered.
+- **AiTask** — a summoned AI action in a room: `type` (answer|research|work-guide|
+  find-specialist), `status` (running|done), input, streamed/stored result. Research =
+  long-running (needs a job runner, see T5).
+- **ResourceRequest** — compute|data ask from a Group: description, `status`
+  (requested|fulfilled|published). Routes to the operator console; a data request can be
+  **published** → DataRequestListing.
+- **DataRequestListing** + **ProviderApplication** — published data need, ranked to likely
+  providers (C12); a provider "applies to help" → on accept becomes a Membership.
+- **Version** — a Group's submitted paper+codebase: paper ref, repo ref, `status`
+  (submitted→feedback→taken-over→published), iterative `version_no` (C13/C14).
+- **Operator queue** — a founder-only view over pending Problem submissions, ResourceRequests,
+  and Versions (likely a query/view, not its own table).
+
+**Flow → surface map**
+- Onboarding → profile-investigation pipeline (T1) → **profile review** screen (edit/confirm).
+- **Home feed** → Problems ranked person→problem (T3) → **Apply**.
+- **Team assembly** batch job (T4) → proposed Group + pending Memberships → **accept screen**
+  (C10, also role-contest) → room goes active.
+- **Group room** (hero) → realtime Messages + shared AI participant (T5) + sidebar
+  compute/data requests + in-room specialist-finder (T6).
+- **Operator console** (founder-only) → fulfil/publish requests, edit/publish problems, review Versions.
+- **Version submission** → husimi review → takeover/publication.
+
+_(Stack, realtime, matching internals, and AI orchestration below are pending the five
+research agents.)_
 
 ## Decisions Made For You (override in /refine)
 <!-- preference-sensitive picks -->
