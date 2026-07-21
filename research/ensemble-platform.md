@@ -30,6 +30,39 @@ _(in progress — investigating)_
 ## Decisions
 <!-- one T# per resolved question; filled as findings land -->
 
+### T1: Profile ingestion = scholarly-first, consent-anchored, user-in-the-loop
+**Decision:** Build the profile from **first-party + open scholarly** sources, never scraping.
+Sources: **OpenAlex** (CC0 — primary: disambiguated author, works, topics/concepts, co-authors,
+institutions, citations/h-index), **ORCID Public API** (authoritative identity anchor: employment,
+education, funding), **Europe PMC** (medical depth: PubMed + preprints + **MeSH** + trial links),
+**Crossref** (DOI/funding cross-check). CV parsed by the **LLM** into a fixed profile schema.
+**Pipeline:** collect user's URLs/CV/answers → resolve identity (ORCID if given, else OpenAlex/
+Crossref name+institution search) → **"Is this you?" disambiguation** (user picks the right author
+profile — resolves ambiguity *and* serves as consent) → enrich from the confirmed anchor → **LLM
+stitch** into the schema with **per-field provenance + confidence** (infers *research domain +
+resources controlled*, never personal health) → **mandatory show-and-correct screen** (every field
+editable, source-tagged).
+**LinkedIn:** never scraped. Only via **"Sign in with LinkedIn" (OIDC)** — yields id/name/email/
+photo only — or a **user-uploaded LinkedIn export** parsed by the LLM. Google Scholar (SerpAPI)
+is optional/redundant with OpenAlex.
+**Why:** Richer, cheaper, and GDPR-safe vs any LinkedIn route (F4, F5). The disambiguation +
+show-and-correct steps are simultaneously the accuracy mechanism and the GDPR Art. 14/16 mechanism.
+**Alternatives rejected:** LinkedIn scraping / Proxycurl-clones / PDL / Coresignal / Bright Data
+(legally closed + GDPR liability — F4); `scholarly` lib (ToS/blocking); dedicated resume-parser as
+primary (LLM already handles researcher CVs; keep Affinda/Textkernel as fallback only).
+**Confidence:** high.
+
+### T2: Role-classification = LLM over the stitched profile, user-confirmable
+**Decision:** Assign each user a role (problem-identifier / builder / researcher) via an **LLM
+classification pass over the completed profile** (publications + topics → researcher signal; code/
+eng/product history → builder; clinical/domain + problem-framing → problem-identifier), emitting a
+role **+ confidence + a short rationale**, with secondary-role signals retained. The user **sees and
+can contest** the role at the team-accept screen (C10) and on their profile.
+**Why:** The rich profile (T1) already carries the signals; an LLM judgment with rationale beats
+brittle rules and is cheap (one Haiku/Sonnet call per user). Human-confirmable per the vision (C5/C10).
+**Alternatives rejected:** self-declared role (vision rejected — too shallow); hard rule-based
+classifier (misses multi-hats like clinician-who-codes). **Confidence:** high.
+
 ### T7: Backbone = Supabase (single vendor), EU Frankfurt region
 **Decision:** Use **Supabase** as the entire backbone — Postgres (relational domain model),
 **pgvector** (matching), **Realtime** (multi-user chat + presence), **Auth** via `@supabase/ssr`,
