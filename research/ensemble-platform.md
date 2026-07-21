@@ -283,8 +283,59 @@ Derived directly from the vision; concrete DB/tech binding follows the backbone 
 - **Operator console** (founder-only) → fulfil/publish requests, edit/publish problems, review Versions.
 - **Version submission** → husimi review → takeover/publication.
 
-_(Stack, realtime, matching internals, and AI orchestration below are pending the five
-research agents.)_
+### System components & data flow
+
+```
+                         ┌─────────────────────────────────────────────┐
+   Browser (Next.js) ────┤  Next.js 14 App Router (Vercel, nodejs)      │
+   - feed / room / onb.  │   - Server Components + Route Handlers        │
+   - useChat (AI SDK)    │   - Server Actions                            │
+   - Realtime subscribe  │   - @supabase/ssr (session in middleware)     │
+        │      ▲         └───────┬───────────────┬───────────────┬───────┘
+        │      │ realtime        │ SQL/RPC       │ tool.execute  │ enqueue
+        │      │ (broadcast)     ▼               ▼               ▼
+        │  ┌───┴─────────────────────────────────────────┐  ┌───────────────┐
+        └──┤  Supabase (EU-Frankfurt)                     │  │ pg-boss queue │
+           │   Postgres: domain tables + pgvector(HNSW)   │  │ (in Postgres) │
+           │   Realtime: 1 channel/room + presence (RLS)  │  └───┬───────┬───┘
+           │   Auth (GoTrue) · Storage (RLS buckets)      │      │       │
+           └───────┬──────────────────────┬───────────────┘      │       │
+                   │ embeddings/rerank     │ read pool            │       │
+                   ▼                       ▼                      ▼       ▼
+        ┌──────────────────┐   ┌────────────────────┐   ┌────────────┐ ┌───────────────┐
+        │ Voyage / OpenAI  │   │ Python worker      │   │ Node worker│ │ Chat model    │
+        │ + Cohere Rerank  │   │ OR-Tools CP-SAT    │   │ Agent SDK  │ │ call (AI SDK) │
+        │ (embed + rank)   │   │ POST /assemble     │   │ research   │ │ Anthropic     │
+        └──────────────────┘   └────────────────────┘   └─────┬──────┘ └───────┬───────┘
+                                                              │ web search     │ stream
+                                                              ▼                ▼
+                                                        WebSearch/Fetch   room channel
+```
+
+**Key data flows**
+- **Onboarding →** Server Action collects links/CV → calls scholarly APIs + LLM stitch → writes
+  `Profile` (+ provenance) → embeds (Voyage) into pgvector → LLM role-classify → show-and-correct.
+- **Feed →** `supabase.rpc()` runs the 3-stage hybrid (SQL filter → RRF → proximity boost) →
+  Cohere rerank server-side → ranked `Problem`s. Backed by a refreshed materialized view.
+- **Apply → assemble →** applications accumulate; when a pool is ready, enqueue an assemble job →
+  Python CP-SAT worker reads pool + fit/proximity → returns role-complete teams (or INFEASIBLE →
+  widen via specialist matcher) → creates `Group` + pending `Membership`s → members **accept** (C10)
+  → room opens (founder auto-added, C17).
+- **Room chat →** human message: persisted + broadcast over the room's Realtime channel, **no model
+  call** unless the AI is @-summoned. Summon → chat Route Handler loads thread from Postgres, builds
+  speaker-labelled `messages` with a cached prefix, `streamText` → deltas relayed to the room
+  channel (every participant renders the same stream) → final turn persisted `onFinish`.
+- **launch_research →** tool enqueues a pg-boss job, returns `job_id`; Node Agent-SDK worker fans out
+  budget-capped web-search subagents, writes progress to `research_jobs`, posts the cited synthesis
+  as an assistant message; clients reconnect via a resumable channel keyed by `job_id`.
+- **find_specialist / request_compute / request_data →** AI tools calling the internal API;
+  side-effects (invite, provision) are **human-approved** and land in the operator queue.
+- **Version submit →** `Version` row + Storage refs → operator console → husimi feedback → takeover.
+
+**Realtime & security:** one multiplexed channel **per room** (watch the 200/500 concurrent-conn
+ceiling); **RLS** on every table; **Realtime Broadcast Authorization** so only room members subscribe;
+service-role key server-only. The AI's human↔human fan-out is Realtime; the AI's own token stream is
+relayed onto the same channel (the AI SDK's default SSE goes only to the requester — must be relayed).
 
 ## Decisions Made For You (override in /refine)
 <!-- preference-sensitive picks -->
