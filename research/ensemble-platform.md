@@ -30,6 +30,24 @@ _(in progress — investigating)_
 ## Decisions
 <!-- one T# per resolved question; filled as findings land -->
 
+### T7: Backbone = Supabase (single vendor), EU Frankfurt region
+**Decision:** Use **Supabase** as the entire backbone — Postgres (relational domain model),
+**pgvector** (matching), **Realtime** (multi-user chat + presence), **Auth** via `@supabase/ssr`,
+**Storage** (file/content sharing) — provisioned in **`eu-central-1` (Frankfurt)** for GDPR
+residency. AI generation is **composed** on top with the Vercel AI SDK (see T5). One vendor
+instead of four; Apache-2.0 + self-hostable as the "don't repaint later" escape hatch; the only
+all-in-one here with a SOC 2 Type 2 + HIPAA-BAA path (needed once PHI appears).
+**Why:** A solo founder can wire one managed Postgres that already carries every requirement
+(F2). pgvector lives in the same DB as the relational data, so matching needs no separate vector
+store. Region is chosen once at project creation and is effectively permanent — decide now.
+**Alternatives rejected:** Convex (best chat DX but **Cloud is US-only; EU residency unshipped**
+— GDPR blocker for a medical EU app); Firebase (NoSQL misfits the relational problems/projects/
+matching model; vector is a bolt-on; deep lock-in); composed Neon + Ably/Pusher/Liveblocks +
+Auth.js/Clerk (best-in-class per layer but a 4-vendor integration/DPA/maintenance tax now — kept
+as a **later graft onto the same Postgres schema**, not a day-one cost); Postgres LISTEN/NOTIFY
+(no browser reach, no presence — rebuilds what Realtime gives); Lucia (deprecated Mar 2025).
+**Confidence:** high.
+
 ## Stack & Libraries
 <!-- filled as findings land -->
 
