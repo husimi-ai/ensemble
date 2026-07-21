@@ -24,8 +24,42 @@ requests can be published for provider-matching.
 - (+ emergent: realtime chat backbone, auth, persistence, hosting, EU/medical compliance.)
 
 ## Recommended Technical Design
-<!-- filled at wrap-up -->
-_(in progress — investigating)_
+
+**One Postgres, one app, two AI runtimes, one occasional Python worker.**
+
+Build on the **existing Next.js 14 / React 18 / Tailwind v3 / TS** frontend (keep the design
+system + primitives; generalize the single-user chat model first). Add **Supabase in EU-Frankfurt**
+as the entire backbone — **Postgres** (relational domain + pgvector matching), **Realtime**
+(multi-user chat + presence), **Auth** (`@supabase/ssr`), **Storage** (files) — one vendor,
+Apache-2.0, self-hostable, with a SOC2 + HIPAA-BAA path for when PHI appears.
+
+**Onboarding** investigates the person from **open scholarly sources** (OpenAlex CC0 + ORCID +
+Europe PMC + Crossref) plus an LLM CV parse — never scraping LinkedIn (OIDC/self-export only) —
+resolves identity with an **"Is this you?" step**, LLM-stitches a provenance-tagged profile, and
+ends on a **mandatory show-and-correct screen** (GDPR Art. 14/16). An LLM then classifies the
+**role** (identifier/builder/researcher, contestable).
+
+**Matching** is one 3-stage hybrid engine in Postgres (SQL filter → vector+FTS RRF with a bounded
+proximity boost → Cohere rerank) reused across all three surfaces (person→problem, group→specialist,
+data→provider). **Team assembly** is **OR-Tools CP-SAT** in a small Python worker, forming
+role-complete teams and firing the specialist-matcher to widen thin pools; teams **confirm** before
+a room opens (C10).
+
+**The room** is the hero: multi-human realtime chat with a **shared, context-aware AI participant**.
+Chat + tools run through the **Vercel AI SDK** in a Node route handler, streaming the AI's reply over
+the room's Realtime channel; humans are speaker-labelled `user` turns with an aggressively **cached
+prompt prefix**; the AI is **@-summoned** (no model call otherwise). Heavy **`launch_research`** jobs
+run in a **background worker on the Claude Agent SDK** (parallel web-search subagents, budget-capped),
+posting a cited synthesis back into the thread. `find_specialist`, `request_compute`, and
+`request_data` are AI tools that hit the internal API, human-approved. Model routing: **Haiku 4.5**
+gate · **Sonnet 5** chat · **Opus 4.8** research + paper drafting.
+
+**Endgame:** a team submits a **version (paper + codebase)**; husimi reviews in an operator console,
+co-authors, and readies it for publication (C13/C14). The founder (moussa@husimi.ai) is a member of
+every room (C17).
+
+**The only non-Next.js/Postgres pieces:** two API calls (embeddings, rerank), one Python OR-Tools
+worker (occasional), and one Node research worker (Agent SDK). Everything else is one app on one DB.
 
 ## Decisions
 <!-- one T# per resolved question; filled as findings land -->
