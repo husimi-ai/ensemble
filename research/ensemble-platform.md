@@ -63,6 +63,56 @@ brittle rules and is cheap (one Haiku/Sonnet call per user). Human-confirmable p
 **Alternatives rejected:** self-declared role (vision rejected — too shallow); hard rule-based
 classifier (misses multi-hats like clinician-who-codes). **Confidence:** high.
 
+### T3: Matching engine = one 3-stage hybrid in Postgres, three surfaces
+**Decision:** One engine serves all three surfaces (person→problem, group→specialist,
+data→provider) — only the query vector + SQL filters change. Store profiles/problems/dataset-
+requests as **pgvector** embeddings (1024-dim, HNSW, `halfvec`) in the **same Supabase Postgres**
+(pgvector 0.8's **iterative index scans** matter — they prevent HNSW "overfiltering" when you
+post-filter by role/city/institution). Pipeline:
+1. **Candidate generation (pure SQL):** cheap `WHERE` filter (never on proximity) → **hybrid
+   retrieval** = vector similarity + full-text, merged by **Reciprocal Rank Fusion** (hybrid
+   materially beats vector-only).
+2. **Composite score + bounded proximity boost (same SQL):**
+   `score = fit · (1 + λ·proximity)`, `λ≈0.15`, proximity = max over tiers (same facility 1.0 /
+   institution 0.8 / city 0.5 / geo-decay) + a small network-closeness term. **Multiplicative,
+   bounded → re-orders near-ties only; never a filter** (honors the vision's boost-not-gate, C8).
+   Geo via `earthdistance`/PostGIS; network closeness from a precomputed shared-rooms graph.
+3. **Rerank the shortlist:** top ~20–50 → **Cohere Rerank 3.5** (cross-encoder; matches/beats LLM
+   rerankers at a fraction of latency/cost). Reserve an actual LLM only for a human-readable
+   "why this match" on the final top-5.
+**Embeddings:** **Voyage-3.5** primary ($0.06/1M, 200M free) or **OpenAI text-embedding-3-large**
+as the one-vendor fallback. **Not** a medical embedder — profiles are scientific prose, and general
+top-tier models match/beat domain models here (MedCPT kept as an optional later A/B only).
+**Surfaces (a) and (c) are pure SQL** (`supabase.rpc()`), backable by a periodically-refreshed
+materialized view for the feed; rerank runs live on load.
+**Why:** Keeps everything in the one Postgres — no separate vector DB to sync/pay for at a
+people-scale corpus (revisit only at ~50–100M vectors). Evidence F7.
+**Alternatives rejected:** Qdrant/Weaviate/Pinecone (second datastore, only pays off at far larger
+scale); medical embedders (no quality win on this text + GPU ops); LLM as scorer/reranker (2–5s,
+~9× cost, non-deterministic). **Confidence:** high.
+
+### T4: Balanced-team assembly = OR-Tools CP-SAT, thin pools trigger the widen path
+**Decision:** Model role-complete team formation as a **constrained assignment / covering ILP** and
+solve with **OR-Tools CP-SAT** (Apache-2.0): binary `x[person, team, role]`; each person on ≤1 team;
+each team must cover all three roles (≥1 each); team size in `[min,max]`; **let the number of teams
+be free and maximize the count of role-complete teams**, objective weighted by `fit + λ·proximity`.
+Exact and instant at Ensemble's scale (dozens–low-hundreds of applicants, a handful of teams).
+Leftover applicants → waitlist (C16). Runs **occasionally** (when a problem's pool is ready), not
+per request, in a **small Python worker** (the only Python in the stack) exposing `POST /assemble`,
+reading the pool + precomputed fit/proximity from Postgres.
+**Thin/lopsided pools** (e.g. 8 builders, 0 researchers): a `COUNT(*) GROUP BY role` precheck (or a
+CP-SAT INFEASIBLE result) is the signal → **(1) wait** (hold, keep pool open); **(2) notify/widen** —
+fire the **group→specialist matcher (T3, surface b)** to rank + invite the missing role; **(3) relax
+gracefully** — form fewer complete teams, or let a dual-qualified applicant cover two roles via an
+eligibility constraint. This is why assembly and specialist-finding share one engine.
+**Why:** The all-three-roles rule is a covering constraint over groups that bipartite matching can't
+express; CP-SAT handles it exactly with no external solver binary.
+**Alternatives rejected:** bipartite matching / `linear_sum_assignment` (optimal 1:1 only — but it
+*is* the right tool for surface (b) assigning several specialists to several rooms at once); greedy
+(fast fallback, can't jointly optimize — keep as CP-SAT fallback); LLM grouping (can't guarantee the
+constraint, not auditable — use only to *explain* a team CP-SAT produced); PuLP/CBC (works; CP-SAT
+faster on boolean covering). **Confidence:** high.
+
 ### T5: In-chat AI = two runtimes (AI SDK chat + Claude Agent SDK research worker)
 **Decision:** Split the AI into **two runtimes over one Postgres thread store**:
 1. **Chat/streaming** — **Vercel AI SDK** (`ai` + `@ai-sdk/anthropic`) in a Next.js **Node**
