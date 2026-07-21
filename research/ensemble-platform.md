@@ -362,8 +362,115 @@ data), `ModelSwitcher`, and `page.tsx` (canned `send`, all-local state, single s
 today it's one client route. (4) `ModelSwitcher` is repurposable as an AI-participant/model
 control in a room, or dropped.
 
+### F2: One Supabase Postgres covers every backend need; EU residency rules out Convex
+**Finding:** For a solo founder, Supabase (Postgres + pgvector + Realtime + Auth + Storage) meets
+the entire requirement set in one vendor. Convex has the best chat DX but **Cloud is US-only, EU
+residency unshipped** — a GDPR blocker for a medical EU app; Firebase's NoSQL misfits the relational
+model; the composed 4-vendor stack is a maintenance/DPA tax now (Neon is Databricks-owned, PartyKit
+absorbed by Cloudflare, Lucia deprecated Mar 2025).
+**Evidence:** Supabase Free = 200 concurrent Realtime conns / 50k MAU / 500MB DB; Pro $25 = 500 conns.
+EU regions Frankfurt/Ireland; SOC2 Type 2 + HIPAA via BAA add-on; Apache-2.0 self-hostable.
+**Implications:** Provision `eu-central-1` on day one (permanent). Pro for MVP; HIPAA BAA + Team plan
+only once real PHI lands (the data-matching design mostly keeps husimi from holding PHI, C12). First
+scaling limit is Realtime concurrency → one channel per room.
+
+### F3: Multi-user AI streaming must be relayed over the room channel, not the default SSE
+**Finding:** The Vercel AI SDK's default transport streams the AI reply over SSE **to only the
+requester** — wrong for a shared room. The AI's token stream must be relayed onto the room's Supabase
+Realtime channel; the final message persists to Postgres; all clients render from the channel.
+**Evidence:** AI SDK transport docs; Supabase Broadcast docs; a custom `ChatTransport` can read the
+channel so `useChat` still drives the UI.
+**Implications:** The room's realtime layer carries both human↔human messages and the AI's relayed
+stream. Enable Realtime Broadcast Authorization (RLS) so only members subscribe.
+
+### F4: LinkedIn data is legally closed; take it only from the user's own hands
+**Finding:** Scraping LinkedIn is enforceable breach-of-contract (how LinkedIn beat hiQ — $500k,
+injunction, hiQ shut down). **Proxycurl was sued (Jan 2025) and shut down (~Jul 2025)** with an order
+to delete all data. Buying pre-scraped person data (PDL/Coresignal/Bright Data) makes *you* a GDPR
+controller who acquired EU personal data without a legal basis or Art. 14 notice. US scraping wins
+(Meta v. Bright Data) are CFAA/contract holdings, irrelevant to GDPR.
+**Evidence:** Morgan Lewis (hiQ); nubela.co (Proxycurl shutdown); Farella (Meta v. Bright Data); CNIL
+legitimate-interest sheet (Jun 2025); gdpr-info Art. 14.
+**Implications:** LinkedIn only via **"Sign in with LinkedIn" OIDC** (id/name/email/photo only) or a
+**user-uploaded export**. The rich profile comes from scholarly APIs instead.
+
+### F5: Open scholarly APIs give a richer, cheaper, GDPR-safe medical-researcher profile
+**Finding:** OpenAlex (CC0 — works, topics, co-authors, metrics), ORCID (authoritative identity),
+Europe PMC (medical depth + MeSH + trials), Crossref (DOI/funding) together beat any LinkedIn route.
+All free REST-JSON, fit an onboarding flow within free tiers. The **"Is this you?" disambiguation** +
+**show-and-correct** screen simultaneously fix accuracy and satisfy GDPR Art. 14/16.
+**Evidence:** developers.openalex.org (CC0; 2026 free API key ~$1/day); ORCID API (12 req/s); Europe PMC
+(~10 req/s, no key); Crossref REST (polite pool). Medical = special category (Art. 9) → infer research
+domain/resources, never personal health.
+**Implications:** Deterministic profiles keyed by ORCID/OpenAlex author ID; store source+confidence per
+field; publish an Art. 14 notice; CV parsed by the LLM (Affinda fallback only if weak).
+
+### F6: Chat and deep-research are different runtimes; keep both Claude-native
+**Finding:** Chat/streaming belongs in a Next.js Node route handler on the Vercel AI SDK; long
+multi-minute research belongs in a **background worker on the Claude Agent SDK** (parallel subagents +
+built-in WebSearch/WebFetch + `maxBudgetUsd`/`maxTurns` + resumable sessions) — never a serverless route
+(duration cap). Shared multi-user context = map each human to a speaker-labelled `user` turn;
+**prompt-cache the stable prefix** (biggest cost lever in a re-summoned thread).
+**Evidence:** Claude Agent SDK TS reference; Vercel AI SDK blogs; prompt-caching docs (reads ~0.1×; min
+prefix Opus/Haiku 4096, Sonnet 2048; caches model-scoped). Rejected LangGraph/Mastra/roll-your-own as
+needless abstraction for a Claude-only app.
+**Implications:** Two workers (Node research, Python assemble) + the app. @-summon gating and caching
+are the two dominant cost controls. Pin the AI SDK major at build time (fast-moving).
+
+### F7: Matching + assembly stay in Postgres; CP-SAT handles the role constraint exactly
+**Finding:** A 3-stage hybrid (SQL filter → vector+FTS RRF → Cohere rerank) with a **bounded
+multiplicative proximity boost** serves all three matching surfaces from one pgvector-in-Postgres store;
+no dedicated vector DB pays off below ~50–100M vectors. Balanced role-complete team formation is NP-hard
+but **OR-Tools CP-SAT** solves it exactly at Ensemble's scale; thin pools surface as INFEASIBLE → widen
+via the shared specialist matcher.
+**Evidence:** pgvector 0.8 iterative scan; Supabase hybrid RRF (~62%→84% precision); Cohere Rerank 3.5
+($2/1k); Voyage-3.5 ($0.06/1M, within 0.3% of Cohere-v4); OR-Tools assignment-teams; team-formation
+NP-hardness (arXiv 1505.06661); domain-embedding study (arXiv 2409.18511).
+**Implications:** Two API deps (embed, rerank) + one occasional Python worker. Proximity is a tunable
+boost (λ), never a filter. Weights `w1..w4`, λ, role taxonomy, and thin-pool policy are product logic to
+tune on real feedback.
+
 ## References
 <!-- R# -->
+### R1: Supabase — pricing, regions, realtime, compliance
+**Source:** https://supabase.com/pricing · https://supabase.com/docs/guides/platform/regions ·
+https://supabase.com/docs/guides/realtime/broadcast · https://supabase.com/blog/supabase-soc2-hipaa
+**Takeaway:** All-in-one Postgres backbone; EU Frankfurt region; Realtime Broadcast/Presence with RLS
+authorization; SOC2 Type 2 + HIPAA-BAA path. Free→$25 Pro; Apache-2.0 self-hostable.
+
+### R2: pgvector 0.8 + hybrid search + rerank
+**Source:** https://www.postgresql.org/about/news/pgvector-080-released-2952 ·
+https://supabase.com/docs/guides/ai/hybrid-search · https://cohere.com/pricing ·
+https://blog.voyageai.com/2025/05/20/voyage-3-5/
+**Takeaway:** pgvector 0.8 iterative scans fix filter-then-rank overfiltering; hybrid RRF lifts
+precision; Cohere Rerank 3.5 for the shortlist; Voyage-3.5 as the cheap high-quality embedder.
+
+### R3: OR-Tools CP-SAT + team-formation complexity
+**Source:** https://developers.google.com/optimization/assignment/assignment_teams ·
+https://pypi.org/project/ortools/ · https://arxiv.org/pdf/1505.06661
+**Takeaway:** Team formation is NP-hard; CP-SAT (Apache-2.0) solves the role-covering assignment
+exactly at small scale; free number of teams, maximize role-complete count.
+
+### R4: Claude Agent SDK + Vercel AI SDK + prompt caching
+**Source:** https://code.claude.com/docs/en/agent-sdk/typescript · https://vercel.com/blog/ai-sdk-7 ·
+https://platform.claude.com/docs/en/build-with-claude/prompt-caching.md ·
+https://platform.claude.com/docs/en/about-claude/models/overview.md
+**Takeaway:** Agent SDK for the research loop (subagents, web tools, budget caps); AI SDK for chat/
+streaming/tools; cache the stable prompt prefix; Haiku/Sonnet/Opus model routing + current pricing.
+
+### R5: Scholarly profile sources
+**Source:** https://developers.openalex.org/ · https://info.orcid.org/ufaqs/what-are-the-api-limits/ ·
+https://europepmc.org/RestfulWebService · https://www.crossref.org/documentation/retrieve-metadata/rest-api/
+**Takeaway:** OpenAlex (CC0), ORCID, Europe PMC (medical + MeSH), Crossref — free REST profile sources,
+richer and safer than LinkedIn.
+
+### R6: LinkedIn/scraping legal + GDPR
+**Source:** https://nubela.co/blog/goodbye-proxycurl/ ·
+https://www.morganlewis.com/blogs/sourcingatmorganlewis/2022/12/linkedin-v-hiq-landmark-data-scraping-suit-provides-guidance-to-data-scrapers-and-web-operators ·
+https://www.cnil.fr/en/legal-basis-legitimate-interest-focus-sheet-measures-implement-case-data-collection-web-scraping ·
+https://gdpr-info.eu/art-14-gdpr/
+**Takeaway:** LinkedIn scraping and enrichment APIs are legally closed; GDPR Art. 14 obliges
+transparency for any non-first-party data. Take LinkedIn only from the user directly.
 
 ## Discarded Approaches
 <!-- filled as findings land -->
