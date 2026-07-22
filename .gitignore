@@ -28,3 +28,9 @@ yarn-error.log*
 .claude/
 notes/
 tasks/
+
+# python (services/assembly)
+__pycache__/
+*.pyc
+.venv/
+venv/
