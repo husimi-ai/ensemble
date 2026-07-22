@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 /** Reachable without a session; everything else redirects to /login. */
-const PUBLIC_PATHS = new Set(["/login", "/signup"]);
+const PUBLIC_PATHS = new Set(["/", "/login", "/signup"]);
 const PUBLIC_PREFIXES = ["/auth/"]; // OAuth/OIDC + email callback
 
 function isPublic(pathname: string): boolean {
