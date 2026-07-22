@@ -1,38 +1,31 @@
 "use client";
 
-import { MessageCircleDashed, PanelLeft, Sparkles } from "lucide-react";
-import { ModelSwitcher } from "@/components/layout/ModelSwitcher";
+import { PanelLeft } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { titleForPath } from "@/components/nav/navConfig";
 import { IconButton } from "@/components/ui/IconButton";
 
 type Props = {
   sidebarOpen: boolean;
   onOpenSidebar: () => void;
-  onNewChat: () => void;
 };
 
-export function TopBar({ sidebarOpen, onOpenSidebar, onNewChat }: Props) {
+/**
+ * The app top bar (52px): a sidebar-reopen button when collapsed, plus the
+ * current surface's title derived from the route.
+ */
+export function TopBar({ sidebarOpen, onOpenSidebar }: Props) {
+  const pathname = usePathname();
+  const title = titleForPath(pathname);
+
   return (
-    <header className="flex h-header items-center justify-between px-2">
-      <div className="flex items-center gap-1">
-        {!sidebarOpen && (
-          <IconButton label="Open sidebar" onClick={onOpenSidebar}>
-            <PanelLeft size={20} />
-          </IconButton>
-        )}
-        <ModelSwitcher />
-      </div>
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-accent hover:bg-hover"
-        >
-          <Sparkles size={16} />
-          Upgrade
-        </button>
-        <IconButton label="Temporary chat" onClick={onNewChat}>
-          <MessageCircleDashed size={20} />
+    <header className="flex h-header items-center gap-1 px-2">
+      {!sidebarOpen && (
+        <IconButton label="Open sidebar" onClick={onOpenSidebar}>
+          <PanelLeft size={20} />
         </IconButton>
-      </div>
+      )}
+      <h1 className="px-2 text-lg font-semibold text-fg">{title}</h1>
     </header>
   );
 }
