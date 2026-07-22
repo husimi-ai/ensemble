@@ -184,8 +184,10 @@ begin
     from fused fu join elig e on e.id = fu.id
   )
   select s.id, s.fit, s.proximity,
-         (s.fit * (1 + 0.15 * s.proximity))::double precision as score
+         (s.fit * (1 + 0.15 * s.proximity))::double precision as score,
+         concat_ws(' ', m.title, m.description) as doc
   from scored s
+  join public.feed_problems m on m.id = s.id
   order by score desc
   limit p_limit;
 end;
