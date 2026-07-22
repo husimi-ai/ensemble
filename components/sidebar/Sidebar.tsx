@@ -8,6 +8,7 @@ import { NavLink } from "@/components/nav/NavLink";
 import { PRIMARY_NAV } from "@/components/nav/navConfig";
 import { AccountMenu } from "@/components/sidebar/AccountMenu";
 import { IconButton } from "@/components/ui/IconButton";
+import type { RoomSummary } from "@/lib/rooms/types";
 
 type Props = {
   rooms?: RoomSummary[];
