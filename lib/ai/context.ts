@@ -88,8 +88,7 @@ export function buildContext(
   // Cache system + tools + all history except the newest turn. Needs >= 2 turns
   // for there to be a stable prefix to cache at all.
   if (model.length >= 2) {
-    const stableEnd = model.length - 2;
-    model[stableEnd] = { ...model[stableEnd], providerOptions: cacheBreakpoint() };
+    model[model.length - 2].providerOptions = cacheBreakpoint();
   }
 
   return { system: SYSTEM_PROMPT, messages: model };
