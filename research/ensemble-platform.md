@@ -338,7 +338,27 @@ service-role key server-only. The AI's human↔human fan-out is Realtime; the AI
 relayed onto the same channel (the AI SDK's default SSE goes only to the requester — must be relayed).
 
 ## Decisions Made For You (override in /refine)
-<!-- preference-sensitive picks -->
+
+- **Embeddings = Voyage-3.5.** Best price/quality ($0.06/1M). _Change to OpenAI
+  `text-embedding-3-large` if you'd rather keep one AI vendor/SDK, or BGE-M3 self-host if you later
+  need zero per-token cost / on-prem._
+- **Job queue = pg-boss** (on the existing Postgres). Zero extra infra. _Change to Inngest or
+  Trigger.dev if you want managed durability, retries dashboards, and observability out of the box._
+- **Hosting = Vercel for the Next app; the two workers (Python OR-Tools, Node Agent-SDK) on a small
+  always-available service** (Fly.io / Render / Cloud Run). _Change the worker host, or fold research
+  into Claude Managed Agents (beta) to avoid running a worker at all._
+- **@-summon default = explicit @mention / "Ask AI" button** (no model call otherwise). _Change to an
+  ambient Haiku "should the AI chime in?" classifier if you want the AI to volunteer — costs more._
+- **Chat model = Sonnet 5.** Near-Opus quality at $3/$15. _Change to Opus 4.8 for maximum quality per
+  turn (higher cost), or keep Sonnet and reserve Opus for research/paper drafting (current default)._
+- **Reranker = Cohere Rerank 3.5 from day one.** _Change to "defer rerank until the feed has depth"
+  (Stages 1–2 alone are serviceable early) to drop one paid dependency in the MVP._
+- **CV parsing = the chat LLM** against the profile schema. _Change to Affinda/Textkernel only if LLM
+  accuracy on messy multi-column CVs proves insufficient._
+- **LinkedIn = offer "Sign in with LinkedIn" (OIDC) + accept user export.** _Change to skipping
+  LinkedIn entirely (scholarly sources already carry the profile) if you want a smaller auth surface._
+- **Research engine = self-hosted Claude Agent SDK worker.** _Change to Claude Managed Agents (beta)
+  to offload the loop + sandbox + cron to Anthropic._
 
 ## Key Findings
 
