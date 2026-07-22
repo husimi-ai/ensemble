@@ -212,6 +212,21 @@ as a **later graft onto the same Postgres schema**, not a day-one cost); Postgre
 (no browser reach, no presence — rebuilds what Realtime gives); Lucia (deprecated Mar 2025).
 **Confidence:** high.
 
+**AMENDED 2026-07-22 (user decision): self-hosted Supabase on our own GCP project.**
+We keep the Supabase *stack* (Postgres + pgvector + GoTrue auth + Realtime + Storage + PostgREST)
+but run it **ourselves on Google Cloud** rather than on Supabase's hosted cloud — the database and
+all data live in our own GCP project (EU region, e.g. `europe-west4`), managed from Google Cloud
+Console. This is the Apache-2.0 self-host escape hatch this decision explicitly reserved.
+**Why this over going GCP-native:** the app's coupling to Supabase is small in TypeScript (13 of 146
+files) but deep in **authorization** — 45 RLS policies, 21 of which call `auth.uid()`. Dropping
+Supabase Auth would force all 45 policies to be re-implemented as application-level authorization,
+plus new auth, realtime and storage. Self-hosting keeps every file, policy, channel and bucket
+working unchanged; it is infra work, not an application rewrite.
+**Rejected:** full GCP-native (Cloud SQL + Identity Platform + GCS + a new realtime layer) — correct
+only if the goal is to be free of Supabase's codebase; costs a foundation-and-room rebuild.
+**Deployment shape:** Postgres on Cloud SQL (or a VM) + the Supabase services on Cloud Run/GKE, same
+migrations, same env var names (only the URL/keys change).
+
 ## Stack & Libraries
 
 | Layer | Choice | Call | Version / cost | License / health | Notes |
