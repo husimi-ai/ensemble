@@ -13,7 +13,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { MembershipRole } from "@/lib/types";
 import { MESSAGE_COLUMNS, mapMessageRow, type MessageRow } from "./map";
-import type { RoomData, RoomMember } from "./types";
+import type { RoomData, RoomMember, RoomSummary } from "./types";
 
 interface MembershipRow {
   user_id: string;
