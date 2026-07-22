@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 
-type IconCmp = ComponentType<{ size?: number; className?: string }>;
+type IconCmp = ComponentType<{ size?: number | string; className?: string }>;
 
 /**
  * A shared, on-token shell for a product surface whose feature logic lands in a
