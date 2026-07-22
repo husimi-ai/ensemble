@@ -111,7 +111,7 @@ create or replace function public.match_problems_for_user(
   p_pool int default 200,
   p_subfield text default null
 ) returns table(problem_id uuid, fit double precision,
-                proximity double precision, score double precision)
+                proximity double precision, score double precision, doc text)
 language plpgsql stable security definer set search_path = public, extensions
 as $$
 declare
