@@ -323,7 +323,7 @@ create or replace function public.match_providers_for_request(
   p_limit int default 50,
   p_pool int default 200
 ) returns table(profile_id uuid, user_id uuid, fit double precision,
-                proximity double precision, score double precision)
+                proximity double precision, score double precision, doc text)
 language plpgsql stable security definer set search_path = public, extensions
 as $$
 declare v_group uuid; v_emb text; v_text text;
