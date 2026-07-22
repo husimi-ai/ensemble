@@ -207,7 +207,7 @@ create or replace function public._match_specialists(
   p_limit int,
   p_pool int
 ) returns table(profile_id uuid, user_id uuid, fit double precision,
-                proximity double precision, score double precision)
+                proximity double precision, score double precision, doc text)
 language plpgsql stable security definer set search_path = public, extensions
 as $$
 declare qv halfvec(1024); tq tsquery; qtext text;
