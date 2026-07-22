@@ -2,6 +2,8 @@
 
 import { initialOf } from "@/components/chat/authorStyle";
 import { Presence } from "@/components/room/Presence";
+import { SubmitVersion } from "@/components/room/SubmitVersion";
+import { VersionHistory } from "@/components/room/VersionHistory";
 import type { PresenceRoster } from "@/lib/realtime";
 import type { RoomMember, RoomSummary } from "@/lib/rooms/types";
 import type { MembershipRole } from "@/lib/types";
