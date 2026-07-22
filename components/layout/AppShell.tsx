@@ -29,6 +29,7 @@ export function AppShell({
         style={{ width: sidebarOpen ? "var(--sidebar-w)" : "0px" }}
       >
         <Sidebar
+          rooms={rooms}
           onCollapse={() => setSidebarOpen(false)}
           onOpenSettings={() => setSettingsOpen(true)}
         />
