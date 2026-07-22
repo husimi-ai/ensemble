@@ -40,6 +40,8 @@ export function RoomView({ data }: { data: RoomData }) {
   const [pending, setPending] = useState<Attachment[]>([]);
   const subRef = useRef<RoomSubscription | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  // Shared AI participant (F3): live turn relayed over the room channel + @-summon.
+  const { bind: bindAi, summon: summonAi, streamingMessages } = useAiParticipant(data.room.id);
 
   const me: RoomPresenceMeta = useMemo(
     () => ({
