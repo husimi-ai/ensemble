@@ -20,7 +20,7 @@ type Props = {
  * (Operator only for the founder), the user's rooms, and the account button.
  * Keeps the reference row geometry + tokens; no hardcoded account/chat data.
  */
-export function Sidebar({ onCollapse, onOpenSettings }: Props) {
+export function Sidebar({ rooms = [], onCollapse, onOpenSettings }: Props) {
   const session = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
 
