@@ -22,8 +22,11 @@ export async function signInWithEmail(formData: FormData): Promise<AuthError | v
   if (!email || !password) return { error: "Email and password are required." };
 
   const supabase = createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: error.message };
+  // Password sign-in never hits /auth/callback, so provision the app rows here too --
+  // otherwise a password user has an auth.users row but no users/profiles row.
+  if (data.user) await ensureAccountRows(supabase, data.user);
 
   redirect(String(formData.get("next") ?? "/") || "/");
 }
