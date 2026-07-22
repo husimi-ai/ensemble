@@ -49,11 +49,18 @@ export function startsNewGroup(message: Message, previous: Message | undefined):
   return !Number.isFinite(gap) || gap > GROUP_WINDOW_MS;
 }
 
-/** Short localized clock time (e.g. "10:32 AM") shown once per visual group. */
+/**
+ * Short 24h clock time (e.g. "10:32") shown once per visual group.
+ *
+ * The locale is pinned deliberately: an `undefined` locale resolves to the
+ * *system* default, which differs between the Node server (en-US -> "5:45 PM")
+ * and the browser (-> "17:45"). That mismatch fails hydration and forces React
+ * to re-render the whole root on the client. Pinning keeps SSR and client byte-identical.
+ */
 export function formatTimeLabel(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(date);
+  return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
 /** Header label for a structured AI artifact block; "" for a plain chat turn. */
