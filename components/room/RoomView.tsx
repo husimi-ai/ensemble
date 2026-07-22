@@ -89,6 +89,10 @@ export function RoomView({ data }: { data: RoomData }) {
     );
   }, [messages, streamingMessages]);
 
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: "end" });
+  }, [visibleMessages]);
+
   async function send(content: string, attachments: Attachment[]) {
     const sub = subRef.current;
     if (!sub || (!content && attachments.length === 0)) return;
