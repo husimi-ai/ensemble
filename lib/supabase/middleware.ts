@@ -1,16 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import type { User } from "@supabase/supabase-js";
 
 /**
- * Refreshes the Supabase auth session on every request and writes the rotated
- * session cookies onto both the incoming request and the outgoing response, so
- * Server Components downstream see a fresh token. Called from root `middleware.ts`.
- *
- * IMPORTANT: do not run other logic between `createServerClient` and
- * `getUser()` -- that call is what performs the refresh. Route protection is
- * layered on top in task 003; here we only keep the session alive.
+ * Refreshes the Supabase session and returns the response plus the
+ * authenticated user (or null) so root middleware.ts can gate routes (003)
+ * without validating the session twice. Do not run logic between
+ * createServerClient and getUser() -- that call performs the refresh.
  */
-export async function updateSession(request: NextRequest) {
+export async function updateSession(
+  request: NextRequest,
+): Promise<{ response: NextResponse; user: User | null }> {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -22,9 +22,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
@@ -34,7 +32,6 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
-
-  return response;
+  const { data: { user } } = await supabase.auth.getUser();
+  return { response, user };
 }
