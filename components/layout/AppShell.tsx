@@ -12,7 +12,13 @@ import type { RoomSummary } from "@/lib/rooms/types";
  * session comes from context (see `app/providers`). Collapse animates the
  * wrapper width 0<->260px per the design system.
  */
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  rooms = [],
+}: {
+  children: ReactNode;
+  rooms?: RoomSummary[];
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
