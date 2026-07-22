@@ -55,9 +55,27 @@ export function Sidebar({ rooms = [], onCollapse, onOpenSettings }: Props) {
 
         <div className="mt-4">
           <div className="px-2.5 pb-1 pt-2 text-sm font-semibold text-fg">My Ensembles</div>
-          <p className="px-2.5 py-1.5 text-sm text-fg-muted">
-            Rooms you join will appear here.
-          </p>
+          {rooms.length === 0 ? (
+            <p className="px-2.5 py-1.5 text-sm text-fg-muted">
+              Rooms you join will appear here.
+            </p>
+          ) : (
+            <nav className="flex flex-col gap-0.5">
+              {rooms.map((r) => (
+                <Link
+                  key={r.id}
+                  href={`/room/${r.id}`}
+                  title={r.title ?? "Untitled ensemble"}
+                  className="flex min-h-9 items-center gap-2 truncate rounded-[10px] px-2.5 py-1.5 text-sm text-fg hover:bg-hover"
+                >
+                  <span className="truncate">{r.title ?? "Untitled ensemble"}</span>
+                  {r.status === "proposed" ? (
+                    <span className="ml-auto shrink-0 text-xs text-fg-muted">pending</span>
+                  ) : null}
+                </Link>
+              ))}
+            </nav>
+          )}
         </div>
       </div>
 
