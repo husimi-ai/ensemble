@@ -44,3 +44,12 @@ pnpm dev                        # http://localhost:3000
 Apply the SQL in `supabase/migrations/` to a Supabase project (region `eu-central-1`). The Python
 team-assembly worker lives in `services/assembly/`; the research worker is
 `services/research/worker.ts`.
+
+## License
+
+Ensemble is **source-available**, licensed under the [PolyForm Noncommercial License 1.0.0](./LICENSE) — **not** an OSI open-source license.
+
+- **You may** use, modify, fork, and share Ensemble freely for any **noncommercial** purpose, as long as you keep the copyright and `Required Notice:` lines (see [`NOTICE`](./NOTICE)) and credit *"Ensemble by Husimi."*
+- **You may not** sell it, bundle it into a paid product, or run it as a paid/hosted service **without a commercial license**.
+
+Copyright (c) 2026 Husimi. Commercial licensing enquiries: see [`NOTICE`](./NOTICE).
