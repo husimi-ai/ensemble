@@ -35,7 +35,7 @@ export function SourceTag({
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] ${
-        isUser ? "bg-accent/10 text-accent" : "bg-muted text-fg-secondary"
+        isUser ? "bg-selected text-accent" : "bg-muted text-fg-secondary"
       }`}
     >
       {LABELS[source]}
