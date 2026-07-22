@@ -153,8 +153,8 @@ begin
     ) s
   ),
   fts as (  -- lexical arm
-    select id, row_number() over (order by rank desc) as rnk from (
-      select e.id, ts_rank(e.fts, tq) as rank
+    select id, row_number() over (order by frank desc) as rnk from (
+      select e.id, ts_rank(e.fts, tq) as frank
       from elig e where tq is not null and e.fts @@ tq
       order by ts_rank(e.fts, tq) desc limit p_pool
     ) s
@@ -256,8 +256,8 @@ begin
     ) s
   ),
   fts as (
-    select id, row_number() over (order by rank desc) as rnk from (
-      select e.id, ts_rank(e.fts, tq) as rank
+    select id, row_number() over (order by frank desc) as rnk from (
+      select e.id, ts_rank(e.fts, tq) as frank
       from elig e where tq is not null and e.fts @@ tq
       order by ts_rank(e.fts, tq) desc limit p_pool
     ) s
