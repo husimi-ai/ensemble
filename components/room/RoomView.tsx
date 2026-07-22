@@ -81,6 +81,18 @@ export function RoomView({ data }: { data: RoomData }) {
     return map;
   }, [roster, data.currentUserId, data.currentUserName]);
 
+  // Merge the AI's in-progress (relayed) turn into the thread. Once its final,
+  // persisted copy lands via the normal message event (same id), the streaming
+  // copy is filtered out, so there is one render path and no duplicate.
+  const visibleMessages = useMemo<Message[]>(() => {
+    if (streamingMessages.length === 0) return messages;
+    const extra = streamingMessages.filter((s) => !messages.some((m) => m.id === s.id));
+    if (extra.length === 0) return messages;
+    return [...messages, ...extra].sort(
+      (a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id),
+    );
+  }, [messages, streamingMessages]);
+
   async function send(content: string, attachments: Attachment[]) {
     const sub = subRef.current;
     if (!sub || (!content && attachments.length === 0)) return;
