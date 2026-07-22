@@ -62,7 +62,6 @@ every room (C17).
 worker (occasional), and one Node research worker (Agent SDK). Everything else is one app on one DB.
 
 ## Decisions
-<!-- one T# per resolved question; filled as findings land -->
 
 ### T1: Profile ingestion = scholarly-first, consent-anchored, user-in-the-loop
 **Decision:** Build the profile from **first-party + open scholarly** sources, never scraping.
