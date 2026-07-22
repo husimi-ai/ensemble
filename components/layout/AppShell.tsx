@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { Sidebar } from "@/components/sidebar/Sidebar";
+import type { RoomSummary } from "@/lib/rooms/types";
 
 /**
  * The authed app chrome: a collapsible sidebar + top bar wrapped around the
