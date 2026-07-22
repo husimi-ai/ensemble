@@ -43,7 +43,11 @@ export function RoomHeader({
           </h1>
           <p className="text-xs capitalize text-fg-muted">{room.status.replace(/_/g, " ")}</p>
         </div>
-        <Presence roster={roster} />
+        <div className="flex shrink-0 items-center gap-2">
+          <VersionHistory groupId={room.id} />
+          <SubmitVersion roomId={room.id} />
+          <Presence roster={roster} />
+        </div>
       </div>
 
       <div className="mx-auto mt-2 flex w-full max-w-thread flex-wrap gap-1.5">
