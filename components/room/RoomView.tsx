@@ -60,12 +60,15 @@ export function RoomView({ data }: { data: RoomData }) {
       onMessage: (m) => setMessages((prev) => mergeMessage(prev, m)),
       onPresence: setRoster,
     });
+    // The AI's streamed turn is broadcast on the same channel (a separate event),
+    // so bind its listener onto this subscription (broadcast binds match locally).
+    bindAi(sub.channel);
     subRef.current = sub;
     return () => {
       sub.close();
       subRef.current = null;
     };
-  }, [supabase, data.room.id, me]);
+  }, [supabase, data.room.id, me, bindAi]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
