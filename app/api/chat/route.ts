@@ -123,7 +123,7 @@ export async function POST(req: Request): Promise<Response> {
     model: chatModel,
     system,
     messages: modelMessages,
-    tools: aiTools,
+    tools: createAiTools({ roomId, userId: user.id }),
     onFinish: async ({ text }) => {
       try {
         const finalText = text.trim();
