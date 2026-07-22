@@ -48,14 +48,14 @@ alter publication supabase_realtime add table public.research_jobs;
 create policy room_broadcast_receive on realtime.messages
   for select to authenticated
   using (
-    realtime.messages.extension = 'broadcast'
+    extension = 'broadcast'
     and public.is_member_of(public.safe_uuid(split_part(realtime.topic(), ':', 2)))
   );
 
 create policy room_broadcast_send on realtime.messages
   for insert to authenticated
   with check (
-    realtime.messages.extension = 'broadcast'
+    extension = 'broadcast'
     and public.is_member_of(public.safe_uuid(split_part(realtime.topic(), ':', 2)))
   );
 
