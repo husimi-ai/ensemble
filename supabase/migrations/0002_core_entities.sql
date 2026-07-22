@@ -89,6 +89,30 @@ create trigger users_set_updated_at
   before update on public.users
   for each row execute function public.set_updated_at();
 
+-- Mirror every new auth.users row into public.users on signup (the standard
+-- Supabase companion trigger). Server-side onboarding (service role) may also
+-- upsert richer fields later; this guarantees the mirror row always exists.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.users (id, email, name)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data ->> 'name', new.raw_user_meta_data ->> 'full_name')
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
 -- profiles (1:1 users) — the investigated, provenance-tagged picture ------------
 create table public.profiles (
   id              uuid primary key default gen_random_uuid(),
