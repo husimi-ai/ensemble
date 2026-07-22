@@ -575,3 +575,25 @@ provenance); scholarly-API rate-limit + caching; seed founder problems; observab
 **Parallelization for `/readyforlaunch`:** P0 is a hard gate. After it, P1 and the P3 chat shell can
 proceed together; P2 depends on P1 profiles; P4 depends on P2's matching API + P3's room; P5 can run
 alongside P4. The two workers (Python assemble, Node research) are independent deployables.
+
+## Implementation Log
+Built via `/flow:readyforlaunch` on 2026-07-22 — 16 tasks across 6 dependency-ordered groups.
+
+- **Execution note:** worktree isolation was unreliable in this environment (4 of the first 6
+  agents had their isolation worktrees culled mid-run). Switched to **sequential, no-isolation
+  agents writing directly to `main`**; recovered the culled agents' work (one from provided code,
+  the rest re-dispatched). All 16 tasks completed, each `tsc --noEmit` clean.
+- **Integration:** full typecheck clean (146 source files); `next build` succeeded (**17 routes**);
+  the production server boots — `/login` and `/` render, `/feed` correctly redirects to
+  `/login?next=/feed`.
+- **De-sloppify:** code was already clean (no oversized files, no TODO/dead markers; only
+  legitimate worker startup/shutdown logs).
+- **Acceptance verdict: YELLOW.** Structurally GREEN (builds, boots, enforces auth); all live flows
+  (Supabase data/realtime/sign-in, Anthropic AI, Voyage/Cohere, LinkedIn OIDC, OR-Tools worker) are
+  **BLOCKED** pending real credentials + a provisioned Supabase project. No RED failures.
+- **Published** as a public prototype: https://github.com/husimi-ai/ensemble (PolyForm
+  Noncommercial 1.0.0, © Husimi).
+- **To go live (needs credentials/deploy):** provision Supabase `eu-central-1` + apply
+  `supabase/migrations/`; set the `.env.example` keys; enable LinkedIn OIDC in Supabase; deploy the
+  Python assembly worker (`services/assembly/`) + the Node research worker
+  (`services/research/worker.ts`); then run end-to-end runtime acceptance.
