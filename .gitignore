@@ -24,5 +24,7 @@ yarn-error.log*
 .env
 .env*.local
 
-# vision / discussion notes (pipeline scratch)
+# Claude Code harness state + pipeline scratch (local-only)
+.claude/
 notes/
+tasks/
