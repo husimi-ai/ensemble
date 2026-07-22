@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
 
-type IconCmp = ComponentType<{ size?: number; className?: string }>;
+type IconCmp = ComponentType<{ size?: number | string; className?: string }>;
 
 /**
  * A sidebar navigation row rendered as a real link, active when the current
