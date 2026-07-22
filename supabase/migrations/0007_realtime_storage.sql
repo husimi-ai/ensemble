@@ -41,21 +41,22 @@ alter publication supabase_realtime add table public.groups;
 alter publication supabase_realtime add table public.resource_requests;
 alter publication supabase_realtime add table public.research_jobs;
 
--- Realtime Broadcast Authorization on realtime.messages -------------------------
--- Topic convention: 'room:<group_id>'. Only accepted members of that group may
--- receive (select) or send (insert) on the channel. RLS is pre-enabled on
--- realtime.messages by Supabase; we add the policies.
+-- Realtime Broadcast + Presence Authorization on realtime.messages -------------
+-- Topic convention: 'room:<group_id>'. Only members of that group (membership
+-- row present — includes not-yet-accepted invitees so the accept screen can load
+-- the room) may receive (select) or send (insert) broadcast/presence on the
+-- channel. RLS is pre-enabled on realtime.messages by Supabase; we add policies.
 create policy room_broadcast_receive on realtime.messages
   for select to authenticated
   using (
-    extension = 'broadcast'
+    extension in ('broadcast', 'presence')
     and public.is_member_of(public.safe_uuid(split_part(realtime.topic(), ':', 2)))
   );
 
 create policy room_broadcast_send on realtime.messages
   for insert to authenticated
   with check (
-    extension = 'broadcast'
+    extension in ('broadcast', 'presence')
     and public.is_member_of(public.safe_uuid(split_part(realtime.topic(), ':', 2)))
   );
 
