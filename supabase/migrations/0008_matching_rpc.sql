@@ -288,8 +288,12 @@ begin
     from fused fu join elig e on e.id = fu.id
   )
   select s.id, s.user_id, s.fit, s.proximity,
-         (s.fit * (1 + 0.15 * s.proximity))::double precision as score
+         (s.fit * (1 + 0.15 * s.proximity))::double precision as score,
+         concat_ws(' ', pf.headline, pf.bio,
+           immutable_array_to_string(pf.research_topics, ' '),
+           immutable_array_to_string(pf.skills, ' ')) as doc
   from scored s
+  join public.profiles pf on pf.id = s.id
   order by score desc
   limit p_limit;
 end;
