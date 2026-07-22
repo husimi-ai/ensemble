@@ -1,0 +1,68 @@
+# Supabase config — Ensemble (husimi.ai)
+#
+# REGION: eu-central-1 (Frankfurt). The region is chosen once at project
+# creation and is effectively permanent (T7 / F2 — GDPR EU data residency for a
+# medical-first app). It is NOT stored in config.toml; set it when provisioning:
+#   supabase projects create ensemble --region eu-central-1
+# Frankfurt (eu-central-1) is the chosen EU region; Ireland (eu-west-1) is the
+# only sanctioned fallback. Do not provision a US region.
+#
+# Extensions enabled by migration 0001: vector (pgvector 0.8), pg_trgm, cube,
+# earthdistance. Auth uses @supabase/ssr (never the deprecated auth-helpers).
+# The service_role key is server-only and bypasses RLS.
+
+project_id = "ensemble"
+
+[api]
+enabled = true
+port = 54321
+# `extensions` is on the search path so halfvec / earthdistance resolve unqualified.
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# Supabase Postgres 17 ships pgvector 0.8 (halfvec + HNSW iterative scans, F7).
+major_version = 17
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+
+[realtime]
+# One private Broadcast channel per room (`room:<group_id>`); authorization via
+# RLS on realtime.messages (migration 0007). Free tier = 200 concurrent conns.
+enabled = true
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[storage.buckets.attachments]
+public = false
+
+[storage.buckets.cvs]
+public = false
+
+[storage.buckets.versions]
+public = false
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.external.linkedin_oidc]
+# LinkedIn strictly via "Sign in with LinkedIn" OIDC (F4) — never scraping.
+# Secrets live in the gitignored env, never here.
+enabled = false
+client_id = ""
+secret = ""
+
+[analytics]
+enabled = false
