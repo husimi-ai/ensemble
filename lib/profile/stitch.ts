@@ -170,7 +170,7 @@ export function deterministicStitch(input: StitchInput): StitchResult {
   };
 
   const conf = (p: Provenance[keyof Provenance]): number | null =>
-    p == null ? null : p === "cv" || p === "orcid" ? CONF_SELF : p === "openalex" && false ? CONF_FACT : CONF_INFERRED;
+    p == null ? null : p === "cv" || p === "orcid" ? CONF_SELF : CONF_INFERRED;
   const confidence: Confidence = {
     headline: conf(provenance.headline),
     bio: conf(provenance.bio),
