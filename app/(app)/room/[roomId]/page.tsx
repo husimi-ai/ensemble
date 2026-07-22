@@ -1,19 +1,29 @@
 import { Users } from "lucide-react";
 import type { Metadata } from "next";
 import { PagePlaceholder } from "@/components/layout/PagePlaceholder";
+import { RoomView } from "@/components/room/RoomView";
+import { loadRoom } from "@/lib/rooms/data";
 
 export const metadata: Metadata = { title: "Ensemble room" };
 
 /**
- * Empty room shell. The multi-author chat + shared AI participant are wired in
- * tasks 005 (message UI) and 012 (realtime).
+ * Room page: server-load the room, membership, and initial thread under RLS
+ * (task 012), then hand off to `RoomView` which subscribes to the room's
+ * Realtime channel. A `null` load means the room doesn't exist or you're not a
+ * member -- indistinguishable by design (fail closed).
  */
-export default function RoomPage({ params }: { params: { roomId: string } }) {
-  return (
-    <PagePlaceholder
-      icon={Users}
-      title="Ensemble room"
-      description={`Room ${params.roomId}. The multi-author chat and shared AI participant land here.`}
-    />
-  );
+export default async function RoomPage({ params }: { params: { roomId: string } }) {
+  const data = await loadRoom(params.roomId);
+
+  if (!data) {
+    return (
+      <PagePlaceholder
+        icon={Users}
+        title="Room unavailable"
+        description="This room doesn't exist, or you're not a member of it."
+      />
+    );
+  }
+
+  return <RoomView data={data} />;
 }
