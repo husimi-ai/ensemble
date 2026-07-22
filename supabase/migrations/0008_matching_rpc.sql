@@ -2,33 +2,24 @@
 -- Ensemble matching engine (T3, F7): the 3-stage hybrid — SQL WHERE filter ->
 -- vector (HNSW, halfvec) + FTS (tsvector) merged by Reciprocal Rank Fusion ->
 -- bounded multiplicative proximity boost — as Postgres functions reused across
--- the three surfaces: person->problem (feed), group->specialist, data->provider.
+-- three surfaces: person->problem (feed), group->specialist, data->provider.
 --
--- INVARIANTS (spec C8 / F7):
---   * Proximity is a BOUNDED MULTIPLICATIVE BOOST, never a filter: it only
---     re-orders near-ties (score = fit * (1 + lambda*proximity), lambda 0.15).
---   * The cheap WHERE filter is NEVER on proximity.
---   * No LLM in the scoring hot path (a "why this match" string is the API's job).
+-- INVARIANTS (spec C8 / F7): proximity is a BOUNDED MULTIPLICATIVE BOOST, never a
+-- filter (score = fit * (1 + lambda*proximity), lambda 0.15 — it only re-orders
+-- near-ties); the cheap WHERE filter is NEVER on proximity; no LLM in the hot path
+-- (the "why this match" string is the API's job).
 --
--- OBJECTS ADDED:
---   proximity_tier(...)          — max(same_facility 1.0 / institution 0.8 /
---                                  city 0.5 / geo-decay); tiers stay ordered.
---   network_closeness(a,b)       — bounded [0,1) shared-rooms edge weight.
---   feed_problems (mat. view)    — denormalized published-problem corpus (each
---                                  problem + its submitter's proximity anchor +
---                                  embedding + fts), the person->problem surface;
---                                  refreshed periodically via refresh_feed().
---   match_problems_for_user(...) — surface a (feed).
---   match_specialists_for_group(...) / match_providers_for_request(...) — b / c,
---                                  both thin wrappers over _match_specialists.
+-- OBJECTS: proximity_tier / network_closeness (the two boost terms); feed_problems
+-- (materialized published-problem corpus + each submitter's proximity anchor,
+-- refreshed via refresh_feed()); match_problems_for_user (surface a);
+-- match_specialists_for_group + match_providers_for_request (b / c) over the shared
+-- _match_specialists core. SECURITY DEFINER so matching sees the full corpus; the
+-- functions return only ids + scores (no PII) — the TS layer hydrates under RLS.
 --
--- Functions are SECURITY DEFINER so matching sees the full corpus (they return
--- only ids + scores, no PII; the TS layer hydrates display rows under RLS).
---
--- SCALE NOTE: the arms read a multiply-referenced `elig` CTE (clean + DRY), which
--- Postgres materializes — fine at people-scale. At ~100k+ rows, inline the filter
--- into the vector arm reading the base relation so the HNSW index + iterative
--- scan (set below) accelerate the ANN top-K instead of a seq scan + sort.
+-- SCALE NOTE: the arms read a multiply-referenced `elig` CTE (DRY), which Postgres
+-- materializes — fine at people-scale. At ~100k+ rows, inline the filter into the
+-- vector arm over the base relation so the HNSW index + iterative scan accelerate
+-- the ANN top-K instead of a seq scan + sort.
 
 set search_path = public, extensions;
 
