@@ -82,3 +82,33 @@ export async function loadRoom(roomId: string): Promise<RoomData | null> {
     messages,
   };
 }
+
+/**
+ * The signed-in user's rooms, for the sidebar's "My Ensembles" list. RLS scopes
+ * `memberships` to the viewer, so this returns only groups they actually belong
+ * to (proposed rooms included -- the accept screen lives elsewhere).
+ */
+export async function loadMyRooms(): Promise<RoomSummary[]> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("memberships")
+    .select("groups(id, name, status)")
+    .eq("user_id", user.id);
+  if (error || !data) return [];
+
+  return data
+    .map((row) => {
+      const raw = (row as { groups: unknown }).groups;
+      const g = (Array.isArray(raw) ? raw[0] : raw) as
+        | { id: string; name: string | null; status: RoomSummary["status"] }
+        | null
+        | undefined;
+      return g ? { id: g.id, title: g.name, status: g.status } : null;
+    })
+    .filter((r): r is RoomSummary => r !== null);
+}
