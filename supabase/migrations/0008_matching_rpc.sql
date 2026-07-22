@@ -357,3 +357,6 @@ grant execute on function
   public.match_providers_for_request(uuid, text, text, int, int)
   to authenticated, service_role;
 grant execute on function public.refresh_feed() to service_role;
+revoke execute on function
+  public._match_specialists(uuid, text, text, text, boolean, uuid, int, int)
+  from public;
