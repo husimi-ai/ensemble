@@ -7,6 +7,7 @@ import { Thread } from "@/components/chat/Thread";
 import { Composer } from "@/components/composer/Composer";
 import { AttachmentUpload } from "@/components/room/AttachmentUpload";
 import { RoomHeader } from "@/components/room/RoomHeader";
+import { useAiParticipant } from "@/components/room/useAiParticipant";
 import {
   type PresenceRoster,
   type RoomPresenceMeta,
