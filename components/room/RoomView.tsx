@@ -112,7 +112,7 @@ export function RoomView({ data }: { data: RoomData }) {
       <RoomHeader room={data.room} members={data.members} roster={roster} />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <Thread messages={messages} currentUserId={data.currentUserId} authors={authors} />
+        <Thread messages={visibleMessages} currentUserId={data.currentUserId} authors={authors} />
         <div ref={bottomRef} />
       </div>
 
