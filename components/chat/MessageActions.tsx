@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
-import type { Role } from "@/lib/types";
+import type { SenderKind } from "@/lib/types";
 
 function ActionButton({
   icon: Icon,
@@ -35,7 +35,20 @@ function ActionButton({
   );
 }
 
-export function MessageActions({ role, content }: { role: Role; content: string }) {
+type Props = {
+  /** Who sent the message -- gates which actions apply (thumbs/regenerate = AI only). */
+  senderKind: SenderKind;
+  /** Whether the current user sent it -- gates edit (only your own message) and alignment. */
+  isOwn: boolean;
+  content: string;
+};
+
+/**
+ * Actions that make sense in a multi-author room: copy is universal, edit is
+ * only offered on your own message, thumbs/read-aloud/regenerate only apply
+ * to the shared AI. System events carry no actions.
+ */
+export function MessageActions({ senderKind, isOwn, content }: Props) {
   const [copied, setCopied] = useState(false);
 
   function copy() {
@@ -46,23 +59,30 @@ export function MessageActions({ role, content }: { role: Role; content: string 
 
   const CopyIcon = copied ? Check : Copy;
 
-  // User actions reveal on hover; assistant actions sit permanently below.
-  if (role === "user") {
+  if (senderKind === "system") return null;
+
+  if (senderKind === "ai") {
+    // AI actions sit permanently below the message, not hover-revealed.
     return (
-      <div className="mt-1 flex justify-end gap-0.5 opacity-0 transition-opacity duration-100 group-hover:opacity-100">
+      <div className="mt-1 flex gap-0.5">
         <ActionButton icon={CopyIcon} label="Copy" onClick={copy} />
-        <ActionButton icon={Pencil} label="Edit message" />
+        <ActionButton icon={ThumbsUp} label="Good response" />
+        <ActionButton icon={ThumbsDown} label="Bad response" />
+        <ActionButton icon={Volume2} label="Read aloud" />
+        <ActionButton icon={RefreshCcw} label="Regenerate" />
       </div>
     );
   }
 
+  // Human message: actions reveal on hover; only your own can be edited.
   return (
-    <div className="mt-1 flex gap-0.5">
+    <div
+      className={`mt-1 flex gap-0.5 opacity-0 transition-opacity duration-100 group-hover:opacity-100 ${
+        isOwn ? "justify-end" : "justify-start"
+      }`}
+    >
       <ActionButton icon={CopyIcon} label="Copy" onClick={copy} />
-      <ActionButton icon={ThumbsUp} label="Good response" />
-      <ActionButton icon={ThumbsDown} label="Bad response" />
-      <ActionButton icon={Volume2} label="Read aloud" />
-      <ActionButton icon={RefreshCcw} label="Regenerate" />
+      {isOwn && <ActionButton icon={Pencil} label="Edit message" />}
     </div>
   );
 }
