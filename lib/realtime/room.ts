@@ -100,7 +100,15 @@ export function subscribeToRoom(
   return {
     channel,
     close: () => {
-      void channel.untrack();
+      // `subscribe()` resolves asynchronously, so teardown can fire before the
+      // channel has joined (React double-invokes effects in dev). Pushing
+      // `presence` to an unjoined channel throws, so only untrack once joined --
+      // and never let teardown surface an error.
+      try {
+        if (String(channel.state) === "joined") void channel.untrack();
+      } catch {
+        // channel already closing/errored -- removeChannel below still cleans up
+      }
       void supabase.removeChannel(channel);
     },
   };
