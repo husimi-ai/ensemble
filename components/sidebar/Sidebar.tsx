@@ -10,6 +10,7 @@ import { AccountMenu } from "@/components/sidebar/AccountMenu";
 import { IconButton } from "@/components/ui/IconButton";
 
 type Props = {
+  rooms?: RoomSummary[];
   onCollapse: () => void;
   onOpenSettings: () => void;
 };
