@@ -231,7 +231,10 @@ export async function matchSpecialistsForGroup(
     .select("problems(title,description)")
     .eq("id", groupId)
     .maybeSingle();
-  const p = (prob?.problems as { title: string; description: string | null } | null) ?? null;
+  const rel = prob?.problems as unknown;
+  const p = (Array.isArray(rel) ? rel[0] : rel) as
+    | { title: string; description: string | null }
+    | undefined;
   const query = p ? `${p.title} ${p.description ?? ""}` : "";
   return applyRerank(query, items, docs, opts.rerankTopN ?? DEFAULT_TOP_N);
 }
