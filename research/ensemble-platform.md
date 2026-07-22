@@ -493,10 +493,42 @@ https://gdpr-info.eu/art-14-gdpr/
 transparency for any non-first-party data. Take LinkedIn only from the user directly.
 
 ## Discarded Approaches
-<!-- filled as findings land -->
+These are explicit **non-goals** for the build:
+- **LinkedIn scraping / enrichment APIs / bought person-datasets** (Proxycurl clones, PDL, Coresignal,
+  Bright Data) — legally closed + GDPR liability (F4).
+- **Dedicated vector DB** (Pinecone/Qdrant/Weaviate) — no payoff below ~50–100M vectors; pgvector wins.
+- **Medical-specific embedding model** (MedCPT/BioBERT) as primary — general models match/beat it on
+  this text + add GPU ops (optional later A/B only).
+- **LLM as the matching scorer/reranker** in the hot path — 2–5s, ~9× cost, non-deterministic; LLM only
+  for a "why this match" explanation.
+- **LangChain.js / Mastra / LangGraph / roll-your-own chat** — needless abstraction for a Claude-only,
+  Next-native app (Agent SDK + AI SDK cover it).
+- **Convex / Firebase / composed 4-vendor backbone** — EU-residency blocker / NoSQL misfit / vendor tax.
+- **Postgres LISTEN/NOTIFY as the realtime layer** — no browser reach, no presence.
+- **Bipartite / greedy / LLM as the team-assembly algorithm** — can't express the all-three-roles
+  covering constraint (bipartite is kept only for surface-b specialist→rooms; greedy as CP-SAT fallback).
+- **Running long research in a serverless route handler** — duration cap kills multi-minute runs.
 
 ## Risks & Open Threads
-<!-- filled as findings land -->
+- [x] **Profile review/consent** — resolved: mandatory show-and-correct step is the GDPR Art. 14/16
+      mechanism, built into onboarding (T1).
+- [ ] **PHI / HIPAA (biggest compliance thread).** The C12 design keeps husimi a *connector*, not a
+      data controller — but the actual data transfer between a provider and a group needs a governance /
+      DPA design (who holds it, where, under what agreement). MVP: treat data requests as
+      provider-matching + operator-mediated introductions only; **defer any husimi-hosted clinical data**
+      until Team plan + BAA + a data-governance design exist. Flag for a dedicated later phase.
+- [ ] **Realtime concurrency ceiling** (200 Free / 500 Pro conns; one per open tab). Multiplex one
+      channel per room; this is the first limit to hit — trigger to consider the composed realtime graft.
+- [ ] **AI cost control** depends on @-summon gating + prompt-cache hit rate holding up in a busy room;
+      instrument `cache_read_input_tokens` and per-thread spend from day one.
+- [ ] **AI SDK version churn** — pin the major at build; the chat layer moved fast (v5→v7 within ~a year).
+- [ ] **Author disambiguation edge cases** (common names, no ORCID) — the "Is this you?" step mitigates;
+      needs a graceful manual-entry fallback when no confident candidate is found.
+- [ ] **Cold-start liquidity** (product, inherited from vision) — matching/assembly quality scales with
+      pool size; medical-first focus + founder-seeded problems + concierge mitigate, but it's the core
+      go-to-market risk, not a technical one.
+- [ ] **Inherited product decisions for /refine** — credit-vs-equity contributor deal, and whether every
+      deliverable must be a paper. Not technical; carry to /refine.
 
 ## Build Plan
 <!-- filled at wrap-up -->
