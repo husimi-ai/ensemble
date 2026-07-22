@@ -1,0 +1,5 @@
+# Team-assembly worker (spec T4, task 010) — the only Python component.
+ortools>=9.10,<10          # CP-SAT solver for the role-covering assignment
+Flask>=3.0,<4              # minimal HTTP framework (POST /assemble, GET /health)
+gunicorn>=22.0            # production WSGI server (see Dockerfile)
+psycopg[binary]>=3.1,<4   # Postgres client — read the pool from Supabase
