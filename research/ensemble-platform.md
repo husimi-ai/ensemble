@@ -450,7 +450,6 @@ boost (λ), never a filter. Weights `w1..w4`, λ, role taxonomy, and thin-pool p
 tune on real feedback.
 
 ## References
-<!-- R# -->
 ### R1: Supabase — pricing, regions, realtime, compliance
 **Source:** https://supabase.com/pricing · https://supabase.com/docs/guides/platform/regions ·
 https://supabase.com/docs/guides/realtime/broadcast · https://supabase.com/blog/supabase-soc2-hipaa
