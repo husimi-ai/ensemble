@@ -70,10 +70,6 @@ export function RoomView({ data }: { data: RoomData }) {
     };
   }, [supabase, data.room.id, me, bindAi]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [visibleMessages]);
-
   const authors = useMemo<Record<string, AuthorInfo>>(() => {
     const map: Record<string, AuthorInfo> = {};
     for (const p of roster) map[p.userId] = { name: p.name };
