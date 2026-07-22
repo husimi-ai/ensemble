@@ -531,4 +531,49 @@ These are explicit **non-goals** for the build:
       deliverable must be a paper. Not technical; carry to /refine.
 
 ## Build Plan
-<!-- filled at wrap-up -->
+Phased and dependency-ordered so `/readyforlaunch` can map phases to parallel agent groups.
+
+**Phase 0 — Foundations (blocking; everything depends on it).**
+Supabase project in `eu-central-1`; enable `vector`, `pg_trgm`/FTS, `cube`+`earthdistance`. Domain
+schema + **RLS** (users, profiles, profile_sources, problems, applications, groups, memberships,
+messages, resource_requests, data_request_listings, provider_applications, versions, research_jobs,
+connections). Auth via `@supabase/ssr` + `middleware.ts`. **Generalize `lib/types.ts`** to the
+multi-author room model (`senderId`, `senderKind: human|ai|system`, `roomId`, `kind`, `createdAt`,
+attachments) and rework `Message`/`Thread`/`MessageActions`. App routing skeleton (feed / room /
+onboarding / profile / operator). Keep all design-system primitives (F1).
+
+**Phase 1 — Onboarding & profile (after P0).**
+Scholarly clients (OpenAlex/ORCID/Europe PMC/Crossref) with polite headers + author-ID caching;
+LLM CV parse; **"Is this you?" disambiguation**; LLM stitch → provenance-tagged profile schema;
+**show-and-correct screen**; embed profile into pgvector (Voyage); **LLM role-classification**;
+"Sign in with LinkedIn" (OIDC) + export upload; Art. 14 notice.
+
+**Phase 2 — Matching & assembly (after P1; parallel with P3).**
+3-stage hybrid as a Postgres function / `supabase.rpc()` (SQL filter → vector+FTS RRF → proximity
+boost) + server-side Cohere rerank; materialized-view home feed; **Python CP-SAT `/assemble` worker**;
+apply flow; **team-accept screen** (C10, role-contest); unmatched → feedback → widen (fire specialist
+matcher) → retry (C16).
+
+**Phase 3 — The room (after P0 chat model; parallel with P2).**
+Multi-user realtime chat (Supabase Realtime channel per room + presence, Broadcast Authorization);
+file/content sharing (Storage, RLS buckets); the **AI participant** via the AI SDK chat Route Handler
+(`runtime='nodejs'`) — @-summon gating, speaker-labelled + cached context, **stream relayed onto the
+room channel** (F3), persist `onFinish`. Founder auto-membership in every room (C17).
+
+**Phase 4 — AI actions (after P2 matching API + P3 room).**
+`launch_research` (pg-boss job → **Node Agent-SDK worker**: parallel budget-capped web-search subagents
+→ progress in `research_jobs` → cited synthesis posted back, resumable by `job_id`); `find_specialist`,
+`request_compute`, `request_data` tools with **human-approval** gates; work-guide drafting (Opus).
+
+**Phase 5 — Operator console & endgame (after P0/P1; parallel with P4).**
+Founder-only queue: review/publish problem submissions, fulfil compute/data or **publish a data request**
+for provider-matching, review **versions**; version submission (paper + codebase via Storage) →
+feedback → takeover (C13/C14).
+
+**Phase 6 — Hardening.**
+Cost/caching instrumentation (cache-hit, per-thread spend); GDPR data-subject flows (access/erasure,
+provenance); scholarly-API rate-limit + caching; seed founder problems; observability + basic tests.
+
+**Parallelization for `/readyforlaunch`:** P0 is a hard gate. After it, P1 and the P3 chat shell can
+proceed together; P2 depends on P1 profiles; P4 depends on P2's matching API + P3's room; P5 can run
+alongside P4. The two workers (Python assemble, Node research) are independent deployables.
