@@ -97,12 +97,14 @@ export function RoomView({ data }: { data: RoomData }) {
     const sub = subRef.current;
     if (!sub || (!content && attachments.length === 0)) return;
     setPending([]);
-    await sendRoomMessage(supabase, sub.channel, {
+    const sent = await sendRoomMessage(supabase, sub.channel, {
       roomId: data.room.id,
       senderId: data.currentUserId,
       content,
       attachments,
     });
+    // Only summon the AI once the human turn is persisted + broadcast (F3 order).
+    if (sent) summonAi(content);
   }
 
   return (
