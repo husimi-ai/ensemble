@@ -72,7 +72,7 @@ export function RoomView({ data }: { data: RoomData }) {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages]);
+  }, [visibleMessages]);
 
   const authors = useMemo<Record<string, AuthorInfo>>(() => {
     const map: Record<string, AuthorInfo> = {};
