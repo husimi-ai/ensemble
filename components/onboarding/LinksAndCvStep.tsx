@@ -25,10 +25,21 @@ export function LinksAndCvStep({ data, patch, userId, onNext }: StepProps) {
     setError(null);
     setUploading(true);
     try {
+      // Read the CV content first so /ingest gets it even if Storage is down.
       const cv = await fileToCvPayload(file);
-      let cvPath: string | null = null;
-      if (userId) cvPath = await uploadCv(createClient(), userId, file);
-      patch({ cv, cvFileName: file.name, cvPath });
+      patch({ cv, cvFileName: file.name, cvPath: null });
+      if (userId) {
+        try {
+          const cvPath = await uploadCv(createClient(), userId, file);
+          patch({ cvPath });
+        } catch (err) {
+          setError(
+            err instanceof Error
+              ? `Saved locally, but upload failed: ${err.message}`
+              : "Saved locally, but upload failed.",
+          );
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not read that file.");
     } finally {
