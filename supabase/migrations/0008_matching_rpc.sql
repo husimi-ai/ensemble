@@ -308,7 +308,7 @@ create or replace function public.match_specialists_for_group(
   p_limit int default 50,
   p_pool int default 200
 ) returns table(profile_id uuid, user_id uuid, fit double precision,
-                proximity double precision, score double precision)
+                proximity double precision, score double precision, doc text)
 language sql stable security definer set search_path = public, extensions
 as $$
   select * from public._match_specialists(
