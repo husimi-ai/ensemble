@@ -30,8 +30,8 @@ export function Pill({ children }: { children: ReactNode }) {
 export function RoleBadge({ label, accepted }: { label: string; accepted?: boolean }) {
   return (
     <span
-      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-        accepted ? "bg-accent/10 text-accent" : "bg-muted text-fg-secondary"
+      className={`rounded-full bg-muted px-2 py-0.5 text-xs font-medium ${
+        accepted ? "text-accent" : "text-fg-secondary"
       }`}
     >
       {label}
