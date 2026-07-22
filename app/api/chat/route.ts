@@ -19,7 +19,7 @@ import { buildContext, type AuthorLabel } from "@/lib/ai/context";
 import { chatModel } from "@/lib/ai/models";
 import { openRoomRelay, persistAiMessage } from "@/lib/ai/relay";
 import { isSummon } from "@/lib/ai/summon";
-import { aiTools } from "@/lib/ai/tools";
+import { createAiTools } from "@/lib/ai/tools";
 import { getUser } from "@/lib/auth";
 import { MESSAGE_COLUMNS, mapMessageRow, type MessageRow } from "@/lib/rooms";
 import { createClient } from "@/lib/supabase/server";
