@@ -1,18 +1,30 @@
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-/** Keep the Supabase auth session fresh on every matched request (@supabase/ssr). */
+/** Reachable without a session; everything else redirects to /login. */
+const PUBLIC_PATHS = new Set(["/login", "/signup"]);
+const PUBLIC_PREFIXES = ["/auth/"]; // OAuth/OIDC + email callback
+
+function isPublic(pathname: string): boolean {
+  return PUBLIC_PATHS.has(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+}
+
+/** Keep the Supabase session fresh (@supabase/ssr) and gate protected routes. */
 export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+  const { response, user } = await updateSession(request);
+  const { pathname } = request.nextUrl;
+
+  if (!user && !isPublic(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
+  }
+  return response;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except Next internals and static assets, so the
-     * session cookie is refreshed on real navigations/data requests. Task 003
-     * adds route protection on top of this matcher.
-     */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
